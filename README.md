@@ -1,8 +1,9 @@
-# Spark Basic Homework
+# Spark SQL Homework
 
 ## 0. Prerequisites
 - Terraform
 - Azure account
+- Azure CLI
 - Databricks CLI
 
 ## 1. Setup infrastructure via Terraform:
