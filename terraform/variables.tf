@@ -1,28 +1,29 @@
 variable "ENV" {
-  type = string
+  type        = string
   description = "The prefix which should be used for all resources in this environment. Make it unique, like ksultanau."
+  default     = "kkabanov"
 }
 
 variable "LOCATION" {
-  type = string
+  type        = string
   description = "The Azure Region in which all resources in this example should be created."
-  default = "westeurope"
+  default     = "westeurope"
 }
 
 variable "BDCC_REGION" {
-  type = string
+  type        = string
   description = "The BDCC Region for billing."
-  default = "global"
+  default     = "global"
 }
 
 variable "STORAGE_ACCOUNT_REPLICATION_TYPE" {
-  type = string
+  type        = string
   description = "Storage Account replication type."
-  default = "LRS"
+  default     = "LRS"
 }
 
 variable "IP_RULES" {
-  type = map(string)
+  type        = map(string)
   description = "Map of IP addresses permitted to access"
   default = {
     "epam-vpn-ru-0" = "185.44.13.36"
