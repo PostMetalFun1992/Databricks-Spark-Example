@@ -52,3 +52,34 @@ hotel_weather_raw.write.format("delta").mode("ignore").save(f"{OUT_STORAGE_URI}/
 
 expedia_delta = spark.read.format("delta").load(f"{OUT_STORAGE_URI}/expedia-delta")
 hotel_weather_delta = spark.read.format("delta").load(f"{OUT_STORAGE_URI}/hotel-weather-delta")
+
+# COMMAND ----------
+
+hotel_weather_delta \
+  .select("id", "address", "wthr_date", "avg_tmpr_c", "geohash") \
+  .withColumnRenamed("address", "name") \
+  .withColumnRenamed("id", "hotel_id") \
+  .withColumnRenamed("name", "hotel_name") \
+  .show()
+
+# COMMAND ----------
+
+from pyspark.sql import functions as f
+from pyspark.sql.window import Window
+from pyspark.sql.functions import col
+
+window = Window.partitionBy("hotel_id")
+
+hotel_weather_cleaned = hotel_weather_delta \
+  .select("id", "address", "avg_tmpr_c") \
+  .withColumnRenamed("id", "hotel_id") \
+  .withColumnRenamed("address", "hotel_name")
+
+hotels_abs_tmpr_diff = hotel_weather_cleaned \
+  .withColumn("max_tmpr_c", f.max("avg_tmpr_c").over(window)) \
+  .withColumn("min_tmpr_c", f.min("avg_tmpr_c").over(window)) \
+  .withColumn("abs_tmpr_diff_c", f.round(f.abs(col("max_tmpr_c") - col("min_tmpr_c")), scale=1)) \
+  .select("hotel_id", "hotel_name", "abs_tmpr_diff_c") \
+  .dropDuplicates(["hotel_id", "hotel_name"])
+
+hotels_abs_tmpr_diff.show()
