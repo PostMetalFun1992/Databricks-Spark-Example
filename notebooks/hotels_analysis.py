@@ -64,6 +64,7 @@ hotel_weather_delta \
 
 # COMMAND ----------
 
+# Top 10 hotels with max absolute temperature difference by month
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col
@@ -82,4 +83,11 @@ hotels_abs_tmpr_diff = hotel_weather_cleaned \
   .select("hotel_id", "hotel_name", "abs_tmpr_diff_c") \
   .dropDuplicates(["hotel_id", "hotel_name"])
 
-hotels_abs_tmpr_diff.show()
+window = Window.orderBy(col("abs_tmpr_diff_c").desc())
+
+top_hotels_abs_tmpr_diff = hotels_abs_tmpr_diff \
+  .withColumn("tmpr_diff_rank", f.dense_rank().over(window)) \
+  .filter(col("tmpr_diff_rank") <= 10) \
+  .orderBy(col("tmpr_diff_rank"))
+
+top_hotels_abs_tmpr_diff.show()
