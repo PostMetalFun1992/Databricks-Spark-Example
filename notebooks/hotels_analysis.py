@@ -55,15 +55,6 @@ hotel_weather_delta = spark.read.format("delta").load(f"{OUT_STORAGE_URI}/hotel-
 
 # COMMAND ----------
 
-hotel_weather_delta \
-  .select("id", "address", "wthr_date", "avg_tmpr_c", "geohash") \
-  .withColumnRenamed("address", "name") \
-  .withColumnRenamed("id", "hotel_id") \
-  .withColumnRenamed("name", "hotel_name") \
-  .show()
-
-# COMMAND ----------
-
 # Top 10 hotels with max absolute temperature difference by month
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
