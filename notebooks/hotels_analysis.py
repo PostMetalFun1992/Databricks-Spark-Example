@@ -69,25 +69,25 @@ from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col
 
-window = Window.partitionBy("hotel_id")
-
 hotel_weather_cleaned = hotel_weather_delta \
-  .select("id", "address", "avg_tmpr_c") \
+  .select("id", "address", "month", "year", "avg_tmpr_c") \
   .withColumnRenamed("id", "hotel_id") \
   .withColumnRenamed("address", "hotel_name")
+
+window = Window.partitionBy("hotel_id", "month", "year")
 
 hotels_abs_tmpr_diff = hotel_weather_cleaned \
   .withColumn("max_tmpr_c", f.max("avg_tmpr_c").over(window)) \
   .withColumn("min_tmpr_c", f.min("avg_tmpr_c").over(window)) \
   .withColumn("abs_tmpr_diff_c", f.round(f.abs(col("max_tmpr_c") - col("min_tmpr_c")), scale=1)) \
-  .select("hotel_id", "hotel_name", "abs_tmpr_diff_c") \
-  .dropDuplicates(["hotel_id", "hotel_name"])
+  .select("hotel_id", "hotel_name", "month", "year", "abs_tmpr_diff_c") \
+  .dropDuplicates(["hotel_id", "month", "year"])
 
-window = Window.orderBy(col("abs_tmpr_diff_c").desc())
+window = Window.partitionBy("month", "year").orderBy(col("abs_tmpr_diff_c").desc())
 
 top_hotels_abs_tmpr_diff = hotels_abs_tmpr_diff \
   .withColumn("tmpr_diff_rank", f.dense_rank().over(window)) \
   .filter(col("tmpr_diff_rank") <= 10) \
-  .orderBy(col("tmpr_diff_rank"))
+  .orderBy("month", "year", "tmpr_diff_rank")
 
 top_hotels_abs_tmpr_diff.show()
