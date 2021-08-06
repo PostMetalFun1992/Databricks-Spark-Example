@@ -42,3 +42,13 @@ OUT_STORAGE_URI = f"abfss://{AZStorage.OUT_CONTAINER}@{AZStorage.OUT_STORAGE_ACC
 
 expedia_raw = spark.read.format("avro").load(f"{IN_STORAGE_URI}/expedia")
 hotel_weather_raw = spark.read.format("parquet").load(f"{IN_STORAGE_URI}/hotel-weather")
+
+# COMMAND ----------
+
+expedia_raw.write.format("delta").mode("ignore").save(f"{OUT_STORAGE_URI}/expedia-delta")
+hotel_weather_raw.write.format("delta").mode("ignore").save(f"{OUT_STORAGE_URI}/hotel-weather-delta")
+
+# COMMAND ----------
+
+expedia_delta = spark.read.format("delta").load(f"{OUT_STORAGE_URI}/expedia-delta")
+hotel_weather_delta = spark.read.format("delta").load(f"{OUT_STORAGE_URI}/hotel-weather-delta")
