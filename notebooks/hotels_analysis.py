@@ -70,9 +70,9 @@ window = Window.partitionBy("hotel_id", "month", "year")
 hotels_abs_tmpr_diff = hotel_weather_cleaned \
   .withColumn("max_tmpr_c", f.max("avg_tmpr_c").over(window)) \
   .withColumn("min_tmpr_c", f.min("avg_tmpr_c").over(window)) \
+  .dropDuplicates(["hotel_id", "month", "year"]) \
   .withColumn("abs_tmpr_diff_c", f.round(f.abs(col("max_tmpr_c") - col("min_tmpr_c")), scale=1)) \
-  .select("hotel_id", "hotel_name", "month", "year", "abs_tmpr_diff_c") \
-  .dropDuplicates(["hotel_id", "month", "year"])
+  .select("hotel_id", "hotel_name", "month", "year", "abs_tmpr_diff_c")
 
 window = Window.partitionBy("month", "year").orderBy(col("abs_tmpr_diff_c").desc())
 
