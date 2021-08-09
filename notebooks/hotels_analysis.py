@@ -55,7 +55,7 @@ hotel_weather_delta = spark.read.format("delta").load(f"{OUT_STORAGE_URI}/hotel-
 
 # COMMAND ----------
 
-# Top 10 hotels with max absolute temperature difference by month
+# Top 10 hotels with max absolute temperature difference by month.
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col
@@ -106,3 +106,40 @@ top_hotels = hotels_visits \
   .orderBy("stay_year", "stay_month", "visits_rank")
 
 top_hotels.show()
+
+# COMMAND ----------
+
+# For visits with extended stay (more than 7 days) calculate weather trend (the day temperature difference between last and first day of stay) and average temperature during stay.
+from pyspark.sql import functions as f
+from pyspark.sql.window import Window
+
+extended_stays = expedia_delta \
+  .select("id", "hotel_id", col("srch_ci").cast("date"), col("srch_co").cast("date")) \
+  .filter(col("srch_co") >= col("srch_ci")) \
+  .filter(f.datediff("srch_co", "srch_ci") > 7)
+
+hotel_weather_cleaned = hotel_weather_delta \
+  .select("id", col("wthr_date").cast("date"), "avg_tmpr_c") \
+  .withColumnRenamed("id", "hotel_id")
+
+# TODO: Optimize range join
+join_cond = [
+  extended_stays.hotel_id == hotel_weather_cleaned.hotel_id,
+  (hotel_weather_cleaned.wthr_date >= extended_stays.srch_ci) & (hotel_weather_cleaned.wthr_date <= extended_stays.srch_co)
+]
+extended_stays_with_weather = extended_stays \
+  .join(hotel_weather_cleaned, join_cond, "inner") \
+  .select("id", "wthr_date", "avg_tmpr_c")
+
+stay_weather_trends = extended_stays_with_weather \
+  .groupBy("id") \
+  .agg(
+    f.first("avg_tmpr_c").alias("fd_avg_tmpr_c"), 
+    f.last("avg_tmpr_c").alias("ld_avg_tmpr_c"), 
+    f.avg("avg_tmpr_c").alias("total_avg_tmpr_c")) \
+  .select(
+    "id", 
+    f.round(col("ld_avg_tmpr_c") - col("fd_avg_tmpr_c"), scale=1).alias("tmpr_trend"),
+    f.round("total_avg_tmpr_c", scale=1).alias("total_avg_tmpr_c"))
+
+stay_weather_trends.show()
