@@ -88,8 +88,13 @@ from pyspark.sql.functions import col
 
 expedia_extended = expedia_delta \
   .select("id", "hotel_id", f.col("srch_ci").cast("date"), f.col("srch_co").cast("date")) \
+  .where(f.col("srch_co") >= f.col("srch_ci")) \
   .withColumn("stay_months", f.expr("sequence(srch_ci, srch_co, interval 1 month)")) \
   .withColumn("gen_date", f.explode("stay_months")) \
   .select("id", "hotel_id", f.month("gen_date").alias("stay_month"), f.year("gen_date").alias("stay_year"))
 
-expedia_extended.show(20, False)
+hotels_visits = expedia_extended \
+  .groupBy("hotel_id", "stay_month", "stay_year") \
+  .agg(f.count("id").alias("stays_count"))
+
+hotels_visits.show(20)
