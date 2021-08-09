@@ -115,6 +115,7 @@ from pyspark.sql.window import Window
 
 extended_stays = expedia_delta \
   .select("id", "hotel_id", col("srch_ci").cast("date"), col("srch_co").cast("date")) \
+  .withColumnRenamed("id", "visit_id") \
   .filter(col("srch_co") >= col("srch_ci")) \
   .filter(f.datediff("srch_co", "srch_ci") > 7)
 
@@ -129,17 +130,18 @@ join_cond = [
 ]
 extended_stays_with_weather = extended_stays \
   .join(hotel_weather_cleaned, join_cond, "inner") \
-  .select("id", "wthr_date", "avg_tmpr_c")
+  .select("visit_id", "wthr_date", "avg_tmpr_c")
 
 stay_weather_trends = extended_stays_with_weather \
-  .groupBy("id") \
+  .groupBy("visit_id") \
   .agg(
     f.first("avg_tmpr_c").alias("fd_avg_tmpr_c"), 
     f.last("avg_tmpr_c").alias("ld_avg_tmpr_c"), 
     f.avg("avg_tmpr_c").alias("total_avg_tmpr_c")) \
   .select(
-    "id", 
+    "visit_id", 
     f.round(col("ld_avg_tmpr_c") - col("fd_avg_tmpr_c"), scale=1).alias("tmpr_trend"),
-    f.round("total_avg_tmpr_c", scale=1).alias("total_avg_tmpr_c"))
+    f.round("total_avg_tmpr_c", scale=1).alias("total_avg_tmpr_c")) \
+  .orderBy("visit_id")
 
 stay_weather_trends.show()
