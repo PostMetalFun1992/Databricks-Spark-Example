@@ -148,6 +148,14 @@ visits_weather_trends.show()
 
 # COMMAND ----------
 
+# For designed queries analyze execution plan.
+
+top_hotels_abs_tmpr_diff.explain(True)
+# top_hotels_by_visits.explain(True)
+# visits_weather_trends.explain(True)
+
+# COMMAND ----------
+
 # Store final DataMarts
 top_hotels_abs_tmpr_diff.write \
   .format("delta") \
