@@ -65,12 +65,9 @@ hotel_weather_cleaned = hotel_weather_delta \
   .withColumnRenamed("id", "hotel_id") \
   .withColumnRenamed("address", "hotel_name")
 
-window = Window.partitionBy("hotel_id", "month", "year")
-
 hotels_abs_tmpr_diff = hotel_weather_cleaned \
-  .withColumn("max_tmpr_c", f.max("avg_tmpr_c").over(window)) \
-  .withColumn("min_tmpr_c", f.min("avg_tmpr_c").over(window)) \
-  .dropDuplicates(["hotel_id", "month", "year"]) \
+  .groupBy(hotel_weather_cleaned.hotel_id, hotel_weather_cleaned.hotel_name, hotel_weather_cleaned.month, hotel_weather_cleaned.year) \
+  .agg(f.max(hotel_weather_cleaned.avg_tmpr_c).alias("max_tmpr_c"), f.min(hotel_weather_cleaned.avg_tmpr_c).alias("min_tmpr_c")) \
   .withColumn("abs_tmpr_diff_c", f.round(f.abs(col("max_tmpr_c") - col("min_tmpr_c")), scale=1)) \
   .select("hotel_id", "hotel_name", "month", "year", "abs_tmpr_diff_c")
 
@@ -79,6 +76,6 @@ window = Window.partitionBy("month", "year").orderBy(col("abs_tmpr_diff_c").desc
 top_hotels_abs_tmpr_diff = hotels_abs_tmpr_diff \
   .withColumn("tmpr_diff_rank", f.dense_rank().over(window)) \
   .filter(col("tmpr_diff_rank") <= 10) \
-  .orderBy("month", "year", "tmpr_diff_rank")
+  .orderBy("month", "year", "tmpr_diff_rank", "hotel_name")
 
 top_hotels_abs_tmpr_diff.show()
