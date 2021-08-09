@@ -66,8 +66,8 @@ hotel_weather_cleaned = hotel_weather_delta \
   .withColumnRenamed("address", "hotel_name")
 
 hotels_abs_tmpr_diff = hotel_weather_cleaned \
-  .groupBy(hotel_weather_cleaned.hotel_id, hotel_weather_cleaned.hotel_name, hotel_weather_cleaned.month, hotel_weather_cleaned.year) \
-  .agg(f.max(hotel_weather_cleaned.avg_tmpr_c).alias("max_tmpr_c"), f.min(hotel_weather_cleaned.avg_tmpr_c).alias("min_tmpr_c")) \
+  .groupBy("hotel_id", "hotel_name", "month", "year") \
+  .agg(f.max("avg_tmpr_c").alias("max_tmpr_c"), f.min(hotel_weather_cleaned.avg_tmpr_c).alias("min_tmpr_c")) \
   .withColumn("abs_tmpr_diff_c", f.round(f.abs(col("max_tmpr_c") - col("min_tmpr_c")), scale=1)) \
   .select("hotel_id", "hotel_name", "month", "year", "abs_tmpr_diff_c")
 
@@ -100,12 +100,12 @@ hotels_visits = expedia_extended \
 
 window = Window.partitionBy("stay_month", "stay_year").orderBy(col("visits_count").desc())
 
-top_hotels = hotels_visits \
+top_hotels_by_visits = hotels_visits \
   .withColumn("visits_rank", f.dense_rank().over(window)) \
   .filter(col("visits_rank") <= 10) \
   .orderBy("stay_year", "stay_month", "visits_rank")
 
-top_hotels.show()
+top_hotels_by_visits.show()
 
 # COMMAND ----------
 
@@ -123,7 +123,6 @@ hotel_weather_cleaned = hotel_weather_delta \
   .select("id", col("wthr_date").cast("date"), "avg_tmpr_c") \
   .withColumnRenamed("id", "hotel_id")
 
-# TODO: Optimize range join
 join_cond = [
   extended_stays.hotel_id == hotel_weather_cleaned.hotel_id,
   (hotel_weather_cleaned.wthr_date >= extended_stays.srch_ci) & (hotel_weather_cleaned.wthr_date <= extended_stays.srch_co)
@@ -133,7 +132,7 @@ extended_stays_with_weather = extended_stays \
   .join(hotel_weather_cleaned, join_cond, "inner") \
   .select("visit_id", "wthr_date", "avg_tmpr_c")
 
-stay_weather_trends = extended_stays_with_weather \
+visits_weather_trends = extended_stays_with_weather \
   .groupBy("visit_id") \
   .agg(
     f.first("avg_tmpr_c").alias("fd_avg_tmpr_c"), 
@@ -145,4 +144,24 @@ stay_weather_trends = extended_stays_with_weather \
     f.round("total_avg_tmpr_c", scale=1).alias("total_avg_tmpr_c")) \
   .orderBy("visit_id")
 
-stay_weather_trends.show()
+visits_weather_trends.show()
+
+# COMMAND ----------
+
+# Store final DataMarts
+top_hotels_abs_tmpr_diff.write \
+  .format("delta") \
+  .mode("ignore") \
+  .partitionBy("year", "month") \
+  .save(f"{OUT_STORAGE_URI}/top-hotels-abs-tmpr-diff")
+
+top_hotels_by_visits.write \
+  .format("delta") \
+  .mode("ignore") \
+  .partitionBy("stay_year", "stay_month") \
+  .save(f"{OUT_STORAGE_URI}/top-hotels-by-visits")
+
+visits_weather_trends.write \
+  .format("delta") \
+  .mode("ignore") \
+  .save(f"{OUT_STORAGE_URI}/visits-weather-trends")
