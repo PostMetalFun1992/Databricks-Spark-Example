@@ -129,6 +129,7 @@ join_cond = [
   (hotel_weather_cleaned.wthr_date >= extended_stays.srch_ci) & (hotel_weather_cleaned.wthr_date <= extended_stays.srch_co)
 ]
 extended_stays_with_weather = extended_stays \
+  .hint("range_join", 24 * 60 * 60) \
   .join(hotel_weather_cleaned, join_cond, "inner") \
   .select("visit_id", "wthr_date", "avg_tmpr_c")
 
