@@ -76,7 +76,7 @@ window = Window.partitionBy("month", "year").orderBy(col("abs_tmpr_diff_c").desc
 top_hotels_abs_tmpr_diff = hotels_abs_tmpr_diff \
   .withColumn("tmpr_diff_rank", f.dense_rank().over(window)) \
   .filter(col("tmpr_diff_rank") <= 10) \
-  .orderBy("month", "year", "tmpr_diff_rank", "hotel_name")
+  .orderBy("year", "month", "tmpr_diff_rank", "hotel_name")
 
 top_hotels_abs_tmpr_diff.show()
 
@@ -84,17 +84,25 @@ top_hotels_abs_tmpr_diff.show()
 
 # Top 10 busy (e.g., with the biggest visits count) hotels for each month. If visit dates refer to several months, it should be counted for all affected months.
 from pyspark.sql import functions as f
+from pyspark.sql.window import Window
 from pyspark.sql.functions import col
 
 expedia_extended = expedia_delta \
-  .select("id", "hotel_id", f.col("srch_ci").cast("date"), f.col("srch_co").cast("date")) \
-  .where(f.col("srch_co") >= f.col("srch_ci")) \
+  .select("id", "hotel_id", col("srch_ci").cast("date"), col("srch_co").cast("date")) \
+  .filter(col("srch_co") >= col("srch_ci")) \
   .withColumn("stay_months", f.expr("sequence(srch_ci, srch_co, interval 1 month)")) \
   .withColumn("gen_date", f.explode("stay_months")) \
   .select("id", "hotel_id", f.month("gen_date").alias("stay_month"), f.year("gen_date").alias("stay_year"))
 
 hotels_visits = expedia_extended \
   .groupBy("hotel_id", "stay_month", "stay_year") \
-  .agg(f.count("id").alias("stays_count"))
+  .agg(f.count("id").alias("visits_count"))
 
-hotels_visits.show(20)
+window = Window.partitionBy("stay_month", "stay_year").orderBy(col("visits_count").desc())
+
+top_hotels = hotels_visits \
+  .withColumn("visits_rank", f.dense_rank().over(window)) \
+  .filter(col("visits_rank") <= 10) \
+  .orderBy("stay_year", "stay_month", "visits_rank")
+
+top_hotels.show()
