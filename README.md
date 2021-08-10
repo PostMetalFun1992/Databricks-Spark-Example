@@ -20,6 +20,8 @@ cd ../
 # Destroy all necessary infrastructure after completing the homework:
 terraform destroy
 ```
+* **IMPORTANT:** Do not forget to add Role Assignment "Storage Blob Data Contributor" to the application registration
+in your storage account. (**TODO:** Automate this step with Terraform)
 
 ## 2. Create databricks secrets:
 * Provide all necessary credentials:
