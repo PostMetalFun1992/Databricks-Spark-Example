@@ -46,7 +46,7 @@ hotel_weather_raw = spark.read.format("parquet").load(f"{IN_STORAGE_URI}/hotel-w
 # COMMAND ----------
 
 expedia_raw.write.format("delta").mode("ignore").save(f"{OUT_STORAGE_URI}/expedia-delta")
-hotel_weather_raw.write.format("delta").mode("ignore").save(f"{OUT_STORAGE_URI}/hotel-weather-delta")
+hotel_weather_raw.write.format("delta").mode("ignore").partitionBy("year", "month", "day").save(f"{OUT_STORAGE_URI}/hotel-weather-delta")
 
 # COMMAND ----------
 
