@@ -78,7 +78,7 @@ top_hotels_abs_tmpr_diff = hotels_abs_tmpr_diff \
   .filter(col("tmpr_diff_rank") <= 10) \
   .orderBy("year", "month", "tmpr_diff_rank", "hotel_name")
 
-top_hotels_abs_tmpr_diff.show()
+display(top_hotels_abs_tmpr_diff)
 
 # COMMAND ----------
 
@@ -105,7 +105,7 @@ top_hotels_by_visits = hotels_visits \
   .filter(col("visits_rank") <= 10) \
   .orderBy("stay_year", "stay_month", "visits_rank")
 
-top_hotels_by_visits.show()
+display(top_hotels_by_visits)
 
 # COMMAND ----------
 
@@ -144,7 +144,7 @@ visits_weather_trends = extended_stays_with_weather \
     f.round("total_avg_tmpr_c", scale=1).alias("total_avg_tmpr_c")) \
   .orderBy("visit_id")
 
-visits_weather_trends.show()
+display(visits_weather_trends)
 
 # COMMAND ----------
 
